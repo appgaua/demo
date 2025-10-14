@@ -6,7 +6,7 @@ metadata:
   labels:
     app: gitops-demo-app
     environment: prod
-    version: v1.0.1
+    version: v1.0.8
 spec:
   replicas: 3
   selector:
@@ -18,7 +18,7 @@ spec:
       labels:
         app: gitops-demo-app
         environment: prod
-        version: v1.0.1
+        version: v1.0.8
     spec:
       containers:
       - name: gitops-demo-app
