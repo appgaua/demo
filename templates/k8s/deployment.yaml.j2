@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ app_name }}
+  namespace: {{ namespace }}
+  labels:
+    app: {{ app_name }}
+    environment: {{ environment }}
+    version: {{ version }}
+spec:
+  replicas: {{ replicas }}
+  selector:
+    matchLabels:
+      app: {{ app_name }}
+      environment: {{ environment }}
+  template:
+    metadata:
+      labels:
+        app: {{ app_name }}
+        environment: {{ environment }}
+        version: {{ version }}
+    spec:
+      containers:
+      - name: {{ app_name }}
+        image: {{ image_repository }}:{{ image_tag }}
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "{{ node_env }}"
+        - name: APP_VERSION
+          value: "{{ version }}"
+        - name: PORT
+          value: "3000"
+        {% if environment == 'dev' %}
+        - name: DEBUG
+          value: "true"
+        {% endif %}
+        resources:
+          requests:
+            memory: "{{ memory_requests }}"
+            cpu: "{{ cpu_requests }}"
+          limits:
+            memory: "{{ memory_limits }}"
+            cpu: "{{ cpu_limits }}"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1001
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001

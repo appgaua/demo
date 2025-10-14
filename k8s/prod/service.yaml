@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitops-demo-app-service
+  namespace: prod
+  labels:
+    app: gitops-demo-app
+    environment: prod
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  selector:
+    app: gitops-demo-app
+    environment: prod
+  sessionAffinity: None

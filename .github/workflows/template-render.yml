@@ -1,0 +1,171 @@
+name: Template Rendering & PR Creation
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'templates/**'
+      - 'config/**'
+      - 'scripts/render-templates.py'
+      - '.github/workflows/template-render.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to render'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - dev
+        - prod
+      image_tag:
+        description: 'Docker image tag'
+        required: false
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  render-templates:
+    name: Render Templates & Create PR
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        pip install jinja2 pyyaml
+
+    - name: Determine environments to render
+      id: envs
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ github.event.inputs.environment }}" = "all" ]; then
+            echo "environments=dev prod" >> $GITHUB_OUTPUT
+          else
+            echo "environments=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          fi
+        else
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "environments=prod" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" = "refs/heads/develop" ]; then
+            echo "environments=dev" >> $GITHUB_OUTPUT
+          else
+            echo "environments=dev prod" >> $GITHUB_OUTPUT
+          fi
+        fi
+
+    - name: Get image tag
+      id: image_tag
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.image_tag }}" ]; then
+          echo "tag=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+        else
+          IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
+          echo "tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Render templates
+      run: |
+        for env in ${{ steps.envs.outputs.environments }}; do
+          echo " Rendering templates for $env environment..."
+          python scripts/render-templates.py \
+            --environment $env \
+            --image-tag ${{ steps.image_tag.outputs.tag }} \
+            --version "v1.0.${{ github.run_number }}" \
+            --output-dir rendered
+        done
+
+    - name: Configure Git
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+    - name: Check for changes
+      id: changes
+      run: |
+        if git diff --quiet; then
+          echo "has_changes=false" >> $GITHUB_OUTPUT
+          echo "No changes to commit"
+        else
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+          echo "Changes detected"
+        fi
+
+    - name: Create Pull Request
+      if: steps.changes.outputs.has_changes == 'true'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const environments = '${{ steps.envs.outputs.environments }}'.split(' ');
+          const imageTag = '${{ steps.image_tag.outputs.tag }}';
+          
+          // Create branch name
+          const branchName = `template-render-${imageTag}-${Date.now()}`;
+          
+          // Commit changes
+          await exec.exec('git', ['add', 'rendered/']);
+          await exec.exec('git', ['commit', '-m', `Render templates for ${environments.join(', ')} with image tag ${imageTag}`]);
+          await exec.exec('git', ['push', 'origin', `HEAD:${branchName}`]);
+          
+          // Create PR
+          const { data: pr } = await github.rest.pulls.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: `Template Rendering: ${environments.join(', ')} environments`,
+            head: branchName,
+            base: context.ref.replace('refs/heads/', ''),
+            body: `## Template Rendering PR
+          
+          This PR contains rendered Kubernetes and ArgoCD manifests from Jinja2 templates.
+          
+          **Environments:** ${environments.join(', ')}
+          **Image Tag:** \`${imageTag}\`
+          **Version:** v1.0.${{ github.run_number }}
+          
+          **Changes:**
+          ${environments.map(env => `- \`rendered/${env}/\` - Rendered manifests for ${env} environment`).join('\n')}
+          
+          **Templates used:**
+          - K8s manifests (deployment, service, namespace)
+          - ArgoCD Applications
+          
+          Please review and merge to deploy the changes.`
+          });
+          
+          console.log(`Created PR #${pr.number}: ${pr.html_url}`);
+          
+          // Add labels
+          await github.rest.issues.addLabels({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: pr.number,
+            labels: ['template-rendering', 'automated']
+          });
+
+    - name: Direct commit (if no PR needed)
+      if: steps.changes.outputs.has_changes == 'true' && github.event_name == 'push'
+      run: |
+        git add rendered/
+        git commit -m " Auto-render templates with image tag ${{ steps.image_tag.outputs.tag }} [skip ci]"
+        git push
+
+    - name: Summary
+      run: |
+        echo "## Template Rendering Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Environments:** ${{ steps.envs.outputs.environments }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Image Tag:** ${{ steps.image_tag.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Changes:** ${{ steps.changes.outputs.has_changes }}" >> $GITHUB_STEP_SUMMARY

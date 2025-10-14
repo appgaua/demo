@@ -1,0 +1,27 @@
+# Development environment configuration
+app_name: "gitops-demo-app"
+environment: "dev"
+namespace: "dev"
+version: "v1.0.0"
+replicas: 1
+node_env: "development"
+
+# Image configuration
+image_repository: "ghcr.io/appgaua/demo"
+image_tag: "latest"
+
+# Resource configuration
+memory_requests: "64Mi"
+cpu_requests: "50m"
+memory_limits: "128Mi"
+cpu_limits: "100m"
+
+# Service configuration
+service_type: "ClusterIP"
+service_port: 3000
+
+# Git configuration
+git_repository: "https://github.com/appgaua/demo.git"
+git_branch: "develop"
+k8s_path: "k8s/dev"
+argocd_applications_path: "argocd/applications"

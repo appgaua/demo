@@ -1,0 +1,27 @@
+# Production environment configuration
+app_name: "gitops-demo-app"
+environment: "prod"
+namespace: "prod"
+version: "v1.0.0"
+replicas: 3
+node_env: "production"
+
+# Image configuration
+image_repository: "ghcr.io/appgaua/demo"
+image_tag: "latest"
+
+# Resource configuration
+memory_requests: "128Mi"
+cpu_requests: "100m"
+memory_limits: "256Mi"
+cpu_limits: "200m"
+
+# Service configuration
+service_type: "LoadBalancer"
+service_port: 80
+
+# Git configuration
+git_repository: "https://github.com/appgaua/demo.git"
+git_branch: "main"
+k8s_path: "k8s/prod"
+argocd_applications_path: "argocd/applications"
