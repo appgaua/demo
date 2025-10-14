@@ -34,10 +34,16 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
+
+    - name: Debug - List files
+      run: |
+        echo "Current directory contents:"
+        ls -la
+        echo "Looking for package files:"
+        ls -la package* || echo "No package files found"
 
     - name: Install dependencies
-      run: npm ci
+      run: npm install
 
     - name: Run linter
       run: npm run lint
