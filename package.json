@@ -1,6 +1,6 @@
 {
   "name": "gitops-demo-app",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "GitOps Demo Application with GitHub Actions and ArgoCD",
   "main": "src/app.js",
   "scripts": {
