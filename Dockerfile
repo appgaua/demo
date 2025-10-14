@@ -8,7 +8,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --only=production --no-audit --no-fund && \
+    npm cache clean --force
 
 # Production stage
 FROM node:18-alpine AS production
