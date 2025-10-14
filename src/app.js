@@ -43,7 +43,15 @@ app.get('/api/info', (req, res) => {
   });
 });
 
-// Error handling
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `Route ${req.method} ${req.path} not found`
+  });
+});
+
+// Error handling (must be last)
 app.use((err, req, res) => {
   // eslint-disable-next-line no-console
   console.error(err.stack);
@@ -53,15 +61,7 @@ app.use((err, req, res) => {
   });
 });
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    error: 'Not Found',
-    message: `Route ${req.method} ${req.path} not found`
-  });
-});
-
-app.listen(port, '0.0.0.0', () => {
+const server = app.listen(port, '0.0.0.0', () => {
   // eslint-disable-next-line no-console
   console.log(`🚀 Server running on port ${port}`);
   // eslint-disable-next-line no-console
@@ -70,4 +70,5 @@ app.listen(port, '0.0.0.0', () => {
   console.log(`ℹ️  API info: http://localhost:${port}/api/info`);
 });
 
-module.exports = app;
+// Export both app and server for testing
+module.exports = { app, server };

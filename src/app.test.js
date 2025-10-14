@@ -1,7 +1,15 @@
 const request = require('supertest');
-const app = require('./app');
+const { app, server } = require('./app');
 
 describe('GitOps Demo App', () => {
+  afterAll((done) => {
+    // Close the server after all tests
+    if (server) {
+      server.close(done);
+    } else {
+      done();
+    }
+  });
   describe('GET /', () => {
     it('should return welcome message', async () => {
       const res = await request(app).get('/');
