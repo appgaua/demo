@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
       - name: gitops-demo-app
-        image: gitops-demo-app:latest
+        image: ghcr.io/appgaua/demo:latest
         ports:
         - containerPort: 3000
           name: http
