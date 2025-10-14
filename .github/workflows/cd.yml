@@ -95,7 +95,6 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         fetch-depth: 0
-        fetch-depth: 0
 
     - name: Configure Git
       run: |
