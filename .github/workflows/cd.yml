@@ -87,7 +87,6 @@ jobs:
     
     permissions:
       contents: write
-      pull-requests: write
     
     steps:
     - name: Checkout code
@@ -101,11 +100,8 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
 
-    - name: Create version bump branch
+    - name: Update version and manifests
       run: |
-        BRANCH_NAME="version-bump-$(date +%Y%m%d-%H%M%S)"
-        git checkout -b $BRANCH_NAME
-        
         # Update version in package.json
         npm version patch --no-git-tag-version
         
@@ -114,36 +110,10 @@ jobs:
         find k8s/ -name "deployment.yaml" -exec sed -i "s|version: v[0-9.]*|version: v${NEW_VERSION}|g" {} \;
         
         git add .
-        git commit -m "Bump version to v${NEW_VERSION}"
-        git push origin $BRANCH_NAME
+        git commit -m "Bump version to v${NEW_VERSION} [skip ci]"
+        git push origin main
         
-        echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
-
-    - name: Create Pull Request
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const { data: pr } = await github.rest.pulls.create({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            title: `Version bump to v${process.env.NEW_VERSION}`,
-            head: process.env.BRANCH_NAME,
-            base: 'main',
-            body: `## Version Bump PR
-            
-            This PR was automatically created to bump the application version.
-            
-            **Changes:**
-            - Updated package.json version
-            - Updated Kubernetes deployment manifests
-            - Updated image tags
-            
-            **Version:** v${process.env.NEW_VERSION}
-            
-            Please review and merge to trigger deployment.`
-          });
-          
-          console.log(`Created PR #${pr.number}: ${pr.html_url}`);
+        echo "Updated version to v${NEW_VERSION} and pushed to main branch"
 
   notify-argocd:
     name: Notify ArgoCD
