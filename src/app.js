@@ -44,7 +44,7 @@ app.get('/api/info', (req, res) => {
 });
 
 // Error handling
-app.use((err, req, res, _next) => {
+app.use((err, req, res) => {
   // eslint-disable-next-line no-console
   console.error(err.stack);
   res.status(500).json({
