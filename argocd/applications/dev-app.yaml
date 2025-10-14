@@ -10,7 +10,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/appgaua/demo.git
-    targetRevision: develop
+    targetRevision: main
     path: k8s/dev
   destination:
     server: https://kubernetes.default.svc
