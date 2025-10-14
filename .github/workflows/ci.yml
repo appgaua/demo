@@ -43,7 +43,10 @@ jobs:
         ls -la package* || echo "No package files found"
 
     - name: Install dependencies
-      run: npm install
+      run: |
+        npm install
+        echo "Generated package-lock.json:"
+        ls -la package-lock.json
 
     - name: Run linter
       run: npm run lint
